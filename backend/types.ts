@@ -14,6 +14,7 @@ export type Message = {
     role: Role
 }
 
+
 export type Model =
   | "deepseek/deepseek-r1-0528-qwen3-8b:free"
   | "deepseek/deepseek-r1-0528:free";
