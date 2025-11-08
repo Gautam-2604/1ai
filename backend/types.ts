@@ -9,6 +9,7 @@ export const CreateChatSchema = z.object({
 
 export type Role = "agent"|"user"
 
+
 export type Message = {
     content: string,
     role: Role
