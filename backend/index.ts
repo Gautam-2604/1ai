@@ -1,18 +1,39 @@
 import express from "express"
-import { CreateChatSchema } from "./types"
+import { CreateChatSchema, Role } from "./types"
 import { createCompletion } from "./openrouter"
+import { InMemoryStore } from "./InMemoryStore"
 const app=express()
 
 app.use(express.json())
 
-app.post("/chat",(req,res)=>{
+app.post("/chat",async(req,res)=>{
     const {success, data} = CreateChatSchema.safeParse(req.body)
+    const conversationId = data?.conversationId ?? Bun.randomUUIDv7()
     if(!success){
         res.status(411).json({message:"Incorrect inputs"})
         return
     }
+    let existingMessages = InMemoryStore.getInstance().get(conversationId)
+    res.setHeader('Content-Type','text/event-stream; charset=utf-8');
+    res.setHeader('Connection','Keep-alive')
+    let message=""
 
-    createCompletion()
+    await createCompletion([...existingMessages,{
+        role: Role.User,
+        content: data.message
+    }], data.model,(chunk: string)=>{
+        message+=chunk;
+        res.write(chunk)
+    })
+    res.end()
+    InMemoryStore.getInstance().add(conversationId,{
+        role: Role.User,
+        content: data.message
+
+
+    })
+
+
     
 })
 

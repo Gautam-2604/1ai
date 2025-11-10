@@ -1,9 +1,12 @@
 import { Message, Model } from "./types";
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY
+const MAX_TOKEN_ITERATIONS = 1000
+export type MODEL = typeof Model[number]
 
-export const createCompletion = async (messages: Message[], model: Model) => {
-  const response = await fetch(
+export const createCompletion = async (messages: Message[], model: MODEL, cb:(chunk: string)=> void) => {
+  return new Promise<void>(async (resolve, reject)=>{
+    const response = await fetch(
     "https://openrouter.ai/api/v1/chat/completions",
     {
       method: "POST",
@@ -12,7 +15,7 @@ export const createCompletion = async (messages: Message[], model: Model) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "deepseek/deepseek-r1-0528-qwen3-8b:free",
+        model,
         messages: messages,
         stream: true,
       }),
@@ -28,7 +31,13 @@ export const createCompletion = async (messages: Message[], model: Model) => {
   let buffer = "";
 
   try {
+    let tokenIterations = 0;
     while (true) {
+      tokenIterations++;
+      if(tokenIterations>MAX_TOKEN_ITERATIONS){
+        resolve()
+        return;
+      }
       const { done, value } = await reader.read();
       if (done) break;
 
@@ -36,7 +45,10 @@ export const createCompletion = async (messages: Message[], model: Model) => {
 
       while (true) {
         const lineEnd = buffer.indexOf("\n");
-        if (lineEnd === -1) break;
+        if (lineEnd === -1){
+          resolve();
+          break;
+        }
 
         const line = buffer.slice(0, lineEnd).trim();
         buffer = buffer.slice(lineEnd + 1);
@@ -49,15 +61,18 @@ export const createCompletion = async (messages: Message[], model: Model) => {
             const parsed = JSON.parse(data);
             const content = parsed.choices[0].delta.content;
             if (content) {
-              console.log(content);
+              cb(content)
             }
           } catch (e) {
-            // Ignore invalid JSON
+            reject()
           }
         }
       }
     }
   } finally {
     reader.cancel();
+    resolve()
   }
+  })
+  
 };
