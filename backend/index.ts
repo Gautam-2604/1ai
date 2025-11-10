@@ -2,9 +2,11 @@ import express from "express"
 import { CreateChatSchema, Role } from "./types"
 import { createCompletion } from "./openrouter"
 import { InMemoryStore } from "./InMemoryStore"
+import cors from "cors"
 const app=express()
 
 app.use(express.json())
+app.use(cors())
 
 app.post("/chat",async(req,res)=>{
     const {success, data} = CreateChatSchema.safeParse(req.body)
