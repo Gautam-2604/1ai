@@ -1,4 +1,4 @@
-import {z} from "zod"
+import {email, z} from "zod"
 
 const MAX_INPUT_TOKENS = 1000;
 export const Model =["deepseek/deepseek-r1-0528-qwen3-8b:free", "deepseek/deepseek-r1-0528:free"]
@@ -7,6 +7,15 @@ export const CreateChatSchema = z.object({
     conversationId: z.uuid().optional(),
     message: z.string().max(MAX_INPUT_TOKENS),
     model: z.enum(Model)
+})
+
+export const CreateUser = z.object({
+    email:z.email()
+})
+
+export const Signin = z.object({
+    email: z.email(),
+    otp: z.string()
 })
 
 export enum Role {
